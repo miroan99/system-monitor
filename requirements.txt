@@ -1,5 +1,5 @@
 # Core dependencies
-requests
+psutil
 
 # Dev tools
 black    # formatter
