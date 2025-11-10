@@ -1,0 +1,7 @@
+# Core dependencies
+requests
+
+# Dev tools
+black    # formatter
+ruff     # linter
+pytest   # testing

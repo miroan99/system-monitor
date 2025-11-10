@@ -1,0 +1,24 @@
+[tool.black]
+line-length = 100
+target-version = ["py311"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+# Enable autofix on save (if your editor supports it)
+fix = false
+
+[tool.ruff.lint]
+# Select common useful rule categories:
+# E = pycodestyle errors, F = pyflakes, I = import sorting, B = bugbear
+select = ["E", "F", "I", "B"]
+
+# Ignore rules you don’t want strict on beginners:
+ignore = [
+    "E501",  # line too long (we handle with black anyway)
+    "B905",  # zip() without strict= (too strict for most projects)
+]
+
+# You can add per-file ignores if needed
+# per-file-ignores = { "tests/*" = ["E402"] }
