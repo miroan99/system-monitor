@@ -3,11 +3,11 @@ System Security Monitor
 Monitors network connections, running processes, and startup programs
 """
 
-import psutil
-import socket
 import datetime
 import platform
 from collections import defaultdict
+
+import psutil
 
 
 def get_system_info():
@@ -28,11 +28,11 @@ def monitor_network_connections():
     print("ACTIVE NETWORK CONNECTIONS")
     print("=" * 60)
 
-    connections = psutil.net_connections(kind='inet')
+    connections = psutil.net_connections(kind="inet")
     connection_data = []
 
     for conn in connections:
-        if conn.status == 'ESTABLISHED':
+        if conn.status == "ESTABLISHED":
             try:
                 process = psutil.Process(conn.pid) if conn.pid else None
                 process_name = process.name() if process else "Unknown"
@@ -40,20 +40,22 @@ def monitor_network_connections():
                 local_addr = f"{conn.laddr.ip}:{conn.laddr.port}" if conn.laddr else "N/A"
                 remote_addr = f"{conn.raddr.ip}:{conn.raddr.port}" if conn.raddr else "N/A"
 
-                connection_data.append({
-                    'process': process_name,
-                    'pid': conn.pid,
-                    'local': local_addr,
-                    'remote': remote_addr,
-                    'status': conn.status
-                })
+                connection_data.append(
+                    {
+                        "process": process_name,
+                        "pid": conn.pid,
+                        "local": local_addr,
+                        "remote": remote_addr,
+                        "status": conn.status,
+                    }
+                )
             except (psutil.NoSuchProcess, psutil.AccessDenied):
                 continue
 
     # Group by process
     process_connections = defaultdict(list)
     for conn in connection_data:
-        process_connections[conn['process']].append(conn)
+        process_connections[conn["process"]].append(conn)
 
     for process_name, conns in sorted(process_connections.items()):
         print(f"\n[{process_name}] (PID: {conns[0]['pid']})")
@@ -72,16 +74,47 @@ def check_suspicious_processes():
     print("RUNNING PROCESSES ANALYSIS")
     print("=" * 60)
 
-    suspicious_keywords = ['miner', 'crypto', 'hack', 'keylog', 'trojan', 'rat', 'backdoor']
+    suspicious_keywords = [
+        # Malware types
+        'trojan', 'virus', 'worm', 'rootkit', 'backdoor', 'rat', 'botnet',
+        'ransomware', 'spyware', 'adware', 'malware', 'exploit',
+
+        # Cryptocurrency mining
+        'miner', 'mining', 'crypto', 'xmrig', 'cpuminer', 'ethminer',
+        'monero', 'bitcoin', 'cryptonight',
+
+        # Keylogging and data theft
+        'keylog', 'keygen', 'logger', 'stealer', 'grabber', 'clipper',
+        'infostealer', 'passwordstealer',
+
+        # Remote access
+        'vnc', 'teamviewer', 'anydesk', 'remotedesktop', 'rdp', 'remote',
+
+        # Hacking tools
+        'hack', 'crack', 'payload', 'shellcode', 'metasploit', 'mimikatz',
+        'psexec', 'netcat', 'nmap', 'wireshark',
+
+        # Suspicious behavior indicators
+        'inject', 'dump', 'elevate', 'bypass', 'disable', 'hidden',
+        'stealth', 'persistence', 'dropper', 'loader', 'packer',
+
+        # Common malware names
+        'emotet', 'trickbot', 'dridex', 'zeus', 'locky', 'wannacry',
+        'petya', 'notpetya', 'ryuk', 'revil', 'sodinokibi',
+
+        # Suspicious file patterns
+        'temp123', 'system32', 'svchost32', 'chrome32', 'update.tmp',
+        'rundll', 'regsvr', 'csrss'
+    ]
     high_network_processes = []
     suspicious_processes = []
 
-    for proc in psutil.process_iter(['pid', 'name', 'username', 'cpu_percent', 'memory_percent']):
+    for proc in psutil.process_iter(["pid", "name", "username", "cpu_percent", "memory_percent"]):
         try:
             pinfo = proc.info
 
             # Check for suspicious names
-            proc_name_lower = pinfo['name'].lower()
+            proc_name_lower = pinfo["name"].lower()
             if any(keyword in proc_name_lower for keyword in suspicious_keywords):
                 suspicious_processes.append(pinfo)
 
@@ -89,12 +122,14 @@ def check_suspicious_processes():
             try:
                 net_io = proc.io_counters()
                 if net_io.read_bytes > 10_000_000 or net_io.write_bytes > 10_000_000:  # >10MB
-                    high_network_processes.append({
-                        'name': pinfo['name'],
-                        'pid': pinfo['pid'],
-                        'read_mb': net_io.read_bytes / 1_000_000,
-                        'write_mb': net_io.write_bytes / 1_000_000
-                    })
+                    high_network_processes.append(
+                        {
+                            "name": pinfo["name"],
+                            "pid": pinfo["pid"],
+                            "read_mb": net_io.read_bytes / 1_000_000,
+                            "write_mb": net_io.write_bytes / 1_000_000,
+                        }
+                    )
             except (psutil.AccessDenied, AttributeError):
                 pass
 
@@ -110,7 +145,9 @@ def check_suspicious_processes():
 
     if high_network_processes:
         print("\n📊 HIGH NETWORK USAGE PROCESSES:")
-        for proc in sorted(high_network_processes, key=lambda x: x['read_mb'] + x['write_mb'], reverse=True)[:10]:
+        for proc in sorted(
+            high_network_processes, key=lambda x: x["read_mb"] + x["write_mb"], reverse=True
+        )[:10]:
             print(f"  - {proc['name']} (PID: {proc['pid']})")
             print(f"    Read: {proc['read_mb']:.2f} MB, Write: {proc['write_mb']:.2f} MB")
 
@@ -124,23 +161,27 @@ def check_listening_ports():
     print("=" * 60)
 
     listening = []
-    for conn in psutil.net_connections(kind='inet'):
-        if conn.status == 'LISTEN':
+    for conn in psutil.net_connections(kind="inet"):
+        if conn.status == "LISTEN":
             try:
                 process = psutil.Process(conn.pid) if conn.pid else None
                 process_name = process.name() if process else "Unknown"
 
-                listening.append({
-                    'process': process_name,
-                    'pid': conn.pid,
-                    'port': conn.laddr.port,
-                    'address': conn.laddr.ip
-                })
+                listening.append(
+                    {
+                        "process": process_name,
+                        "pid": conn.pid,
+                        "port": conn.laddr.port,
+                        "address": conn.laddr.ip,
+                    }
+                )
             except (psutil.NoSuchProcess, psutil.AccessDenied):
                 continue
 
-    for item in sorted(listening, key=lambda x: x['port']):
-        print(f"Port {item['port']:5d} - {item['process']} (PID: {item['pid']}) on {item['address']}")
+    for item in sorted(listening, key=lambda x: x["port"]):
+        print(
+            f"Port {item['port']:5d} - {item['process']} (PID: {item['pid']}) on {item['address']}"
+        )
 
     print(f"\nTotal listening ports: {len(listening)}")
     print()
